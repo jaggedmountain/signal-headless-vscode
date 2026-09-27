@@ -7,9 +7,12 @@ import { Mutes } from "./mutes";
 import { Session } from "./session";
 import { Thread } from "./types";
 
-// ACTIVE_DAYS: the "Active" filter shows conversations with a message in
-// this many days (plus any with unread messages).
-export const ACTIVE_DAYS = 30;
+// activeDays: the "Active" filter shows conversations with a message in the
+// last signalHeadless.activeDays days (plus any with unread messages).
+export function activeDays(): number {
+  const n = vscode.workspace.getConfiguration("signalHeadless").get<number>("activeDays", 30);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 30;
+}
 
 export class ThreadsView implements vscode.TreeDataProvider<Thread>, vscode.Disposable {
   private readonly changed = new vscode.EventEmitter<Thread | undefined>();
@@ -59,14 +62,14 @@ export class ThreadsView implements vscode.TreeDataProvider<Thread>, vscode.Disp
     const n = this.session.totalUnread;
     this.view.badge = n > 0 ? { value: n, tooltip: `${n} unread message${n === 1 ? "" : "s"}` } : undefined;
     const st = this.session.status;
-    this.view.description = this.session.state === "unlinked" ? "not linked" : this.session.state !== "connected" ? "disconnected" : st && st.connection !== "connected" ? st.connection : this.activeOnly ? `last ${ACTIVE_DAYS} days` : "all";
+    this.view.description = this.session.state === "unlinked" ? "not linked" : this.session.state !== "connected" ? "disconnected" : st && st.connection !== "connected" ? st.connection : this.activeOnly ? `last ${activeDays()} days` : "all";
   }
 
   getChildren(element?: Thread): Thread[] {
     if (element || this.session.state !== "connected") {
       return [];
     }
-    const since = Date.now() - ACTIVE_DAYS * 24 * 60 * 60 * 1000;
+    const since = Date.now() - activeDays() * 24 * 60 * 60 * 1000;
     return this.session.threads.filter((t) =>
       (this.showArchived || !t.archived || t.unread > 0) && (!this.activeOnly || t.unread > 0 || t.lastTs >= since));
   }

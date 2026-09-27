@@ -2,7 +2,7 @@
   "name": "signal-headless",
   "displayName": "signal-headless — Signal in VS Code (unofficial)",
   "description": "Unofficial Signal client for VS Code: notifications, conversations and chat through a local signal-headless daemon. Not affiliated with Signal.",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "publisher": "jaggedmountain",
   "private": true,
   "license": "AGPL-3.0-or-later",
@@ -79,7 +79,7 @@
       },
       {
         "view": "signalHeadless.threads",
-        "contents": "No conversations in the last 30 days.\n[Show All Conversations](command:signalHeadless.showAllThreads)\n[New Conversation](command:signalHeadless.newConversation)",
+        "contents": "No recently active conversations.\n[Show All Conversations](command:signalHeadless.showAllThreads)\n[Change Active Period](command:workbench.action.openSettings?%5B%22signalHeadless.activeDays%22%5D)\n[New Conversation](command:signalHeadless.newConversation)",
         "when": "signalHeadless.connected && signalHeadless.activeOnly"
       }
     ],
@@ -149,7 +149,7 @@
       },
       {
         "command": "signalHeadless.showActiveThreads",
-        "title": "Show Active Conversations (Last 30 Days)",
+        "title": "Show Active Conversations",
         "category": "Signal",
         "icon": "$(filter)"
       },
@@ -492,6 +492,12 @@
           ],
           "default": "account",
           "markdownDescription": "Attach a preview (title, description, image) when a message contains an https link, like Signal's apps. The daemon fetches the page when the link is typed — the sender fetches it, receivers never do. The preview shows above the compose box and can be removed before sending."
+        },
+        "signalHeadless.activeDays": {
+          "type": "integer",
+          "default": 30,
+          "minimum": 1,
+          "markdownDescription": "The Conversations view's *Active* filter shows conversations with a message in this many days, plus any with unread messages."
         },
         "signalHeadless.chatPanels": {
           "type": "string",

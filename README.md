@@ -20,8 +20,8 @@ Messenger or the Signal Technology Foundation.
   connection problems show here too.
 - **Conversations view** in the activity bar: unread first-class, previews,
   archive/unarchive, mute, mark read. The filter button switches between
-  *Active* (a message in the last 30 days, or unread; the default) and
-  *All*.
+  *Active* (a message in the last `signalHeadless.activeDays` days, 30 by
+  default, or unread; the default filter) and *All*.
 - **Chat panels**, one editor tab per conversation: history with day
   separators, quotes, reactions, attachments (images inline), receipts,
   typing indicators, disappearing-message timer, link-preview cards (from
@@ -123,6 +123,7 @@ is hidden in remote windows, where a terminal would run on the remote host.
 | `signalHeadless.desktopNotifications` | `true` | desktop notifications when no VS Code window is focused |
 | `signalHeadless.notificationPreview` | `true` | include message text in notifications |
 | `signalHeadless.enterSends` | `true` | off: `Ctrl+Enter` sends |
+| `signalHeadless.activeDays` | `30` | the Conversations view's *Active* filter: conversations with a message in this many days, plus any unread |
 | `signalHeadless.chatPanels` | `perConversation` | `single`: one Signal tab that switches conversations (drafts and replies kept per conversation) |
 | `signalHeadless.sendLinkPreviews` | `account` | link previews on sent messages: follow the account setting, `on`, `off` |
 
@@ -194,3 +195,8 @@ Copyright © 2026 Jeff Mattson.
 `AGPL-3.0-or-later`, the same as signal-headless; see `LICENSE`. The
 extension doesn't include the daemon; the one it downloads comes from
 signal-headless's own releases, with their source and license.
+
+The AGPL covers the code, not the signal-headless logo (`media/icon.png`).
+It is © 2026 Jeff Mattson, all rights reserved, except that it may be shown
+unmodified to refer to this extension or signal-headless. A modified version
+or fork doesn't get to use it; please give it its own name and icon.

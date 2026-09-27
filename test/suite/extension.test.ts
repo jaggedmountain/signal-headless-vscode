@@ -265,7 +265,7 @@ describe("signal-headless extension", () => {
     await waitFor(() => api.session.thread(BOB)?.unread === 0, 5000, "read");
   });
 
-  it("filters the conversation list to the last 30 days", async () => {
+  it("filters the conversation list to the last signalHeadless.activeDays days", async () => {
     const tv = api.threadsView;
     const old = "00000000-0000-4000-8000-0000000000ff";
     await api.session.call("debugInject", { message: { thread: old, author: old, body: "long ago", ts: Date.now() - 60 * 86_400_000 } });
@@ -280,6 +280,17 @@ describe("signal-headless extension", () => {
     assert.ok(ids().includes(old), "shown with All");
     await vscode.commands.executeCommand("signalHeadless.showActiveThreads");
     assert.ok(!ids().includes(old));
+    assert.equal(tv.view.description, "last 30 days");
+    // A longer active period brings the 60-day-old conversation back.
+    const cfg = vscode.workspace.getConfiguration("signalHeadless");
+    await cfg.update("activeDays", 90, vscode.ConfigurationTarget.Global);
+    try {
+      await waitFor(() => ids().includes(old), 5000, "shown with activeDays 90");
+      assert.equal(tv.view.description, "last 90 days");
+    } finally {
+      await cfg.update("activeDays", undefined, vscode.ConfigurationTarget.Global);
+    }
+    await waitFor(() => !ids().includes(old), 5000, "hidden again at 30 days");
     // Unread keeps even an old conversation visible.
     await api.session.call("debugInject", { message: { thread: old, author: old, body: "still old", ts: Date.now() - 59 * 86_400_000 } });
     await waitFor(() => ids().includes(old), 5000, "unread old conversation shown");
