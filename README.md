@@ -1,3 +1,5 @@
+<p align="center"><img src="media/icon.png" alt="signal-headless logo" width="128"></p>
+
 # signal-headless for VS Code (unofficial Signal client)
 
 Signal notifications and conversations inside VS Code, through a local

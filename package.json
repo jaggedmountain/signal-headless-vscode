@@ -2,10 +2,15 @@
   "name": "signal-headless",
   "displayName": "signal-headless — Signal in VS Code (unofficial)",
   "description": "Unofficial Signal client for VS Code: notifications, conversations and chat through a local signal-headless daemon. Not affiliated with Signal.",
-  "version": "0.7.0",
+  "version": "0.7.4",
   "publisher": "jaggedmountain",
   "private": true,
   "license": "AGPL-3.0-or-later",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#2c3e50",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.100.0"
   },
