@@ -1,0 +1,566 @@
+{
+  "name": "signal-headless",
+  "displayName": "signal-headless — Signal in VS Code (unofficial)",
+  "description": "Unofficial Signal client for VS Code: notifications, conversations and chat through a local signal-headless daemon. Not affiliated with Signal.",
+  "version": "0.7.0",
+  "publisher": "jaggedmountain",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "signal",
+    "chat",
+    "notifications"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished",
+    "onWebviewPanel:signalHeadless.chat"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "signalHeadless",
+          "title": "Signal",
+          "icon": "media/signal.svg"
+        }
+      ]
+    },
+    "views": {
+      "signalHeadless": [
+        {
+          "id": "signalHeadless.threads",
+          "name": "Conversations",
+          "icon": "media/signal.svg"
+        },
+        {
+          "id": "signalHeadless.search",
+          "name": "Search Results",
+          "icon": "$(search)",
+          "when": "signalHeadless.hasSearch"
+        },
+        {
+          "id": "signalHeadless.diagnostics",
+          "name": "Diagnostics",
+          "icon": "$(pulse)",
+          "visibility": "collapsed"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "signalHeadless.threads",
+        "contents": "This computer isn't linked to a Signal account yet.\n[Link This Computer](command:signalHeadless.link)\nLinking shows a QR code to scan with Signal on the phone (Settings → Linked devices).",
+        "when": "signalHeadless.unlinked"
+      },
+      {
+        "view": "signalHeadless.threads",
+        "contents": "Not connected to the signal-headless daemon.\n[Reconnect](command:signalHeadless.reconnect)\n[Show Log](command:signalHeadless.showLog)",
+        "when": "!signalHeadless.connected && !signalHeadless.unlinked"
+      },
+      {
+        "view": "signalHeadless.threads",
+        "contents": "No conversations yet.\n[New Conversation](command:signalHeadless.newConversation)",
+        "when": "signalHeadless.connected && !signalHeadless.activeOnly"
+      },
+      {
+        "view": "signalHeadless.threads",
+        "contents": "No conversations in the last 30 days.\n[Show All Conversations](command:signalHeadless.showAllThreads)\n[New Conversation](command:signalHeadless.newConversation)",
+        "when": "signalHeadless.connected && signalHeadless.activeOnly"
+      }
+    ],
+    "commands": [
+      {
+        "command": "signalHeadless.link",
+        "title": "Link This Computer…",
+        "category": "Signal",
+        "icon": "$(link)"
+      },
+      {
+        "command": "signalHeadless.openThread",
+        "title": "Open Conversation…",
+        "category": "Signal",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "signalHeadless.nextUnread",
+        "title": "Open Next Unread Conversation",
+        "category": "Signal"
+      },
+      {
+        "command": "signalHeadless.newConversation",
+        "title": "New Conversation…",
+        "category": "Signal",
+        "icon": "$(add)"
+      },
+      {
+        "command": "signalHeadless.search",
+        "title": "Search Messages…",
+        "category": "Signal",
+        "icon": "$(search)"
+      },
+      {
+        "command": "signalHeadless.searchInConversation",
+        "title": "Search in Conversation…",
+        "category": "Signal",
+        "icon": "$(search)"
+      },
+      {
+        "command": "signalHeadless.searchAgain",
+        "title": "Search Again",
+        "category": "Signal",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "signalHeadless.clearSearch",
+        "title": "Clear Search Results",
+        "category": "Signal",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "signalHeadless.sendFile",
+        "title": "Send to Signal…",
+        "category": "Signal"
+      },
+      {
+        "command": "signalHeadless.sendSelection",
+        "title": "Send Selection to Signal…",
+        "category": "Signal"
+      },
+      {
+        "command": "signalHeadless.showAllThreads",
+        "title": "Show All Conversations",
+        "category": "Signal",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "signalHeadless.showActiveThreads",
+        "title": "Show Active Conversations (Last 30 Days)",
+        "category": "Signal",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "signalHeadless.showArchived",
+        "title": "Show Archived Conversations",
+        "category": "Signal",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "signalHeadless.hideArchived",
+        "title": "Hide Archived Conversations",
+        "category": "Signal",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "signalHeadless.archive",
+        "title": "Archive",
+        "category": "Signal",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "signalHeadless.unarchive",
+        "title": "Unarchive",
+        "category": "Signal"
+      },
+      {
+        "command": "signalHeadless.mute",
+        "title": "Mute Notifications",
+        "category": "Signal",
+        "icon": "$(bell-slash)"
+      },
+      {
+        "command": "signalHeadless.unmute",
+        "title": "Unmute Notifications",
+        "category": "Signal",
+        "icon": "$(bell)"
+      },
+      {
+        "command": "signalHeadless.markRead",
+        "title": "Mark as Read",
+        "category": "Signal",
+        "icon": "$(check)"
+      },
+      {
+        "command": "signalHeadless.markAllRead",
+        "title": "Mark All as Read",
+        "category": "Signal",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "signalHeadless.reconnect",
+        "title": "Reconnect to Daemon",
+        "category": "Signal",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "signalHeadless.openShell",
+        "title": "Open Terminal Shell (TUI)",
+        "category": "Signal",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "signalHeadless.showLog",
+        "title": "Show Log",
+        "category": "Signal"
+      },
+      {
+        "command": "signalHeadless.refreshDiagnostics",
+        "title": "Refresh Diagnostics",
+        "category": "Signal",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "signalHeadless.purge",
+        "title": "Delete Old Messages…",
+        "category": "Signal",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "signalHeadless.retryFailedDownloads",
+        "title": "Retry Failed Downloads",
+        "category": "Signal",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "signalHeadless.newConversation",
+          "when": "view == signalHeadless.threads",
+          "group": "navigation@1"
+        },
+        {
+          "command": "signalHeadless.search",
+          "when": "view == signalHeadless.threads",
+          "group": "navigation@2"
+        },
+        {
+          "command": "signalHeadless.showArchived",
+          "when": "view == signalHeadless.threads && !signalHeadless.showArchived",
+          "group": "navigation@4"
+        },
+        {
+          "command": "signalHeadless.hideArchived",
+          "when": "view == signalHeadless.threads && signalHeadless.showArchived",
+          "group": "navigation@4"
+        },
+        {
+          "command": "signalHeadless.markAllRead",
+          "when": "view == signalHeadless.threads",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "signalHeadless.openShell",
+          "when": "view == signalHeadless.threads && !remoteName",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "signalHeadless.reconnect",
+          "when": "view == signalHeadless.threads",
+          "group": "1_actions@3"
+        },
+        {
+          "command": "signalHeadless.showLog",
+          "when": "view == signalHeadless.threads",
+          "group": "1_actions@4"
+        },
+        {
+          "command": "signalHeadless.link",
+          "when": "view == signalHeadless.threads && signalHeadless.unlinked",
+          "group": "navigation@0"
+        },
+        {
+          "command": "signalHeadless.showAllThreads",
+          "when": "view == signalHeadless.threads && signalHeadless.activeOnly",
+          "group": "navigation@3"
+        },
+        {
+          "command": "signalHeadless.showActiveThreads",
+          "when": "view == signalHeadless.threads && !signalHeadless.activeOnly",
+          "group": "navigation@3"
+        },
+        {
+          "command": "signalHeadless.search",
+          "when": "view == signalHeadless.search",
+          "group": "navigation@1"
+        },
+        {
+          "command": "signalHeadless.searchAgain",
+          "when": "view == signalHeadless.search",
+          "group": "navigation@2"
+        },
+        {
+          "command": "signalHeadless.clearSearch",
+          "when": "view == signalHeadless.search",
+          "group": "navigation@3"
+        },
+        {
+          "command": "signalHeadless.purge",
+          "when": "view == signalHeadless.diagnostics",
+          "group": "navigation@1"
+        },
+        {
+          "command": "signalHeadless.refreshDiagnostics",
+          "when": "view == signalHeadless.diagnostics",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "signalHeadless.markRead",
+          "when": "view == signalHeadless.threads && viewItem =~ /unread/",
+          "group": "inline@1"
+        },
+        {
+          "command": "signalHeadless.markRead",
+          "when": "view == signalHeadless.threads && viewItem =~ /unread/",
+          "group": "1_thread@1"
+        },
+        {
+          "command": "signalHeadless.mute",
+          "when": "view == signalHeadless.threads && viewItem =~ /thread/ && !(viewItem =~ /muted/)",
+          "group": "1_thread@2"
+        },
+        {
+          "command": "signalHeadless.unmute",
+          "when": "view == signalHeadless.threads && viewItem =~ /muted/",
+          "group": "1_thread@2"
+        },
+        {
+          "command": "signalHeadless.archive",
+          "when": "view == signalHeadless.threads && viewItem =~ /thread/ && !(viewItem =~ /archived/)",
+          "group": "1_thread@3"
+        },
+        {
+          "command": "signalHeadless.unarchive",
+          "when": "view == signalHeadless.threads && viewItem =~ /archived/",
+          "group": "1_thread@3"
+        },
+        {
+          "command": "signalHeadless.searchInConversation",
+          "when": "view == signalHeadless.threads && viewItem =~ /thread/",
+          "group": "2_search@1"
+        },
+        {
+          "command": "signalHeadless.searchInConversation",
+          "when": "view == signalHeadless.search && viewItem == searchThread",
+          "group": "inline@1"
+        },
+        {
+          "command": "signalHeadless.purge",
+          "when": "view == signalHeadless.threads && viewItem =~ /thread/",
+          "group": "3_maintenance@1"
+        },
+        {
+          "command": "signalHeadless.retryFailedDownloads",
+          "when": "view == signalHeadless.diagnostics && viewItem == failedDownloads",
+          "group": "inline@1"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "signalHeadless.sendFile",
+          "when": "!explorerResourceIsFolder",
+          "group": "7_signal"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "signalHeadless.sendFile",
+          "group": "7_signal"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "signalHeadless.sendSelection",
+          "when": "editorHasSelection",
+          "group": "7_signal"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "signalHeadless.archive",
+          "when": "false"
+        },
+        {
+          "command": "signalHeadless.unarchive",
+          "when": "false"
+        },
+        {
+          "command": "signalHeadless.mute",
+          "when": "false"
+        },
+        {
+          "command": "signalHeadless.unmute",
+          "when": "false"
+        },
+        {
+          "command": "signalHeadless.markRead",
+          "when": "false"
+        },
+        {
+          "command": "signalHeadless.openShell",
+          "when": "!remoteName"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "signalHeadless.openThread",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
+      },
+      {
+        "command": "signalHeadless.nextUnread",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n"
+      }
+    ],
+    "configuration": {
+      "title": "Signal (signal-headless)",
+      "properties": {
+        "signalHeadless.socketPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Daemon socket. Empty: `$SIGNAL_HEADLESS_SOCKET`, else `$XDG_RUNTIME_DIR/signal-headless.sock` (the daemon's default).",
+          "scope": "machine"
+        },
+        "signalHeadless.executablePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the `signal-headless` binary (used for linking, auto-start and the terminal shell). Empty: an install on `PATH`, `~/.local/bin` or `~/go/bin` if it is new enough, else the release this extension downloads (see `#signalHeadless.downloadDaemon#`).",
+          "scope": "machine"
+        },
+        "signalHeadless.autoStartDaemon": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start the daemon in the background when it is not running."
+        },
+        "signalHeadless.notifications": {
+          "type": "string",
+          "enum": [
+            "all",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Notify for incoming messages in conversations that are not muted",
+            "Never notify"
+          ],
+          "default": "all",
+          "description": "Notifications for incoming messages."
+        },
+        "signalHeadless.desktopNotifications": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When no VS Code window is focused, show a desktop notification (`notify-send`) instead of an in-editor one."
+        },
+        "signalHeadless.notificationPreview": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include the message text in notifications (off: sender only)."
+        },
+        "signalHeadless.enterSends": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "In the chat panel, `Enter` sends and `Shift+Enter` inserts a newline. Off: `Ctrl+Enter` sends."
+        },
+        "signalHeadless.sendLinkPreviews": {
+          "type": "string",
+          "enum": [
+            "account",
+            "on",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Follow the Signal account's \"Generate link previews\" setting (Settings → Chats on the phone)",
+            "Always offer a preview for links in messages sent from VS Code",
+            "Never fetch or send link previews"
+          ],
+          "default": "account",
+          "markdownDescription": "Attach a preview (title, description, image) when a message contains an https link, like Signal's apps. The daemon fetches the page when the link is typed — the sender fetches it, receivers never do. The preview shows above the compose box and can be removed before sending."
+        },
+        "signalHeadless.chatPanels": {
+          "type": "string",
+          "enum": [
+            "perConversation",
+            "single"
+          ],
+          "enumDescriptions": [
+            "Each conversation opens in its own editor tab",
+            "One Signal tab: opening a conversation switches it (drafts and replies are kept per conversation)"
+          ],
+          "default": "perConversation",
+          "description": "How conversations open in the editor."
+        },
+        "signalHeadless.downloadDaemon": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "always",
+            "never"
+          ],
+          "enumDescriptions": [
+            "Ask before downloading",
+            "Download without asking",
+            "Never download; use an installed signal-headless"
+          ],
+          "default": "ask",
+          "markdownDescription": "When no suitable `signal-headless` is installed, download the release this extension was built for from GitHub (checksum-verified) into the extension's storage.",
+          "scope": "machine"
+        },
+        "signalHeadless.releasesUrl": {
+          "type": "string",
+          "default": "https://github.com/jaggedmountain/signal-headless/releases",
+          "markdownDescription": "Where daemon releases are downloaded from (a GitHub releases URL or a mirror with the same layout: `download/<tag>/<asset>`).",
+          "scope": "machine"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc -p . --noEmit",
+    "test:unit": "node scripts/build.mjs --tests && node --test --test-reporter=spec out/test/unit/*.test.js",
+    "test:vscode": "node scripts/build.mjs --tests && xvfb-run -a -s \"-screen 0 1400x900x24\" node out/test/runVSCode.js",
+    "test": "npm run typecheck && npm run test:unit && npm run test:vscode",
+    "package": "npm run build -- --production && vsce package --no-dependencies -o signal-headless-vscode.vsix",
+    "fetch-daemon": "node scripts/build.mjs --tools && node out/fetch-daemon.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.0.0",
+    "@types/vscode": "~1.100.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.0",
+    "mocha": "^11.0.0",
+    "node-emoji": "^2.2.0",
+    "qrcode-generator": "^2.0.4",
+    "typescript": "^5.8.0"
+  },
+  "author": {
+    "name": "Jeff Mattson"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jaggedmountain/signal-headless-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/jaggedmountain/signal-headless-vscode/issues"
+  },
+  "homepage": "https://github.com/jaggedmountain/signal-headless-vscode#readme",
+  "signalHeadless": {
+    "daemonVersion": "v0.1.0",
+    "minProtocol": 1
+  }
+}

@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2026 Jeff Mattson
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# On a v* tag: test, package the .vsix, attach it to a GitHub release, and
+# publish it to the VS Code Marketplace when a VSCE_PAT secret is set.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  vsix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run fetch-daemon
+      - run: sudo apt-get install -y --no-install-recommends xvfb
+      - run: npm test
+      - name: Check the tag matches package.json
+        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+      - run: npm run package
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" signal-headless-vscode.vsix --verify-tag --title "signal-headless-vscode $GITHUB_REF_NAME" --generate-notes
+      - name: VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        if: env.VSCE_PAT != ''
+        run: npx vsce publish --packagePath signal-headless-vscode.vsix

@@ -1,0 +1,7 @@
+**
+!dist/extension.js
+!dist/chat.js
+!media/**
+!package.json
+!README.md
+!LICENSE

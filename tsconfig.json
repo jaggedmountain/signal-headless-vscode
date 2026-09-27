@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noImplicitReturns": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node", "mocha"],
+    "rootDir": "."
+  },
+  "include": ["src", "webview", "test", "scripts/*.ts"]
+}

@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 Jeff Mattson
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The tests drive a real daemon in --fake mode: the release this
+      # extension is pinned to (package.json → signalHeadless.daemonVersion).
+      - run: npm run fetch-daemon
+      - run: sudo apt-get install -y --no-install-recommends xvfb
+      - run: npm test
