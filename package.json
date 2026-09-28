@@ -2,7 +2,7 @@
   "name": "signal-headless",
   "displayName": "signal-headless — Signal in VS Code (unofficial)",
   "description": "Unofficial Signal client for VS Code: notifications, conversations and chat through a local signal-headless daemon. Not affiliated with Signal.",
-  "version": "0.7.5",
+  "version": "0.8.0",
   "publisher": "jaggedmountain",
   "private": true,
   "license": "AGPL-3.0-or-later",
@@ -580,7 +580,7 @@
   },
   "homepage": "https://github.com/jaggedmountain/signal-headless-vscode#readme",
   "signalHeadless": {
-    "daemonVersion": "v0.1.0",
+    "daemonVersion": "v0.2.0",
     "minProtocol": 1
   }
 }
