@@ -566,6 +566,9 @@
     "type": "git",
     "url": "https://github.com/jaggedmountain/signal-headless-vscode"
   },
+  "sponsor": {
+    "url": "https://github.com/sponsors/jam-on"
+  },
   "bugs": {
     "url": "https://github.com/jaggedmountain/signal-headless-vscode/issues"
   },

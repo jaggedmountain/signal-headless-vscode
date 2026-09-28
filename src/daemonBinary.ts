@@ -29,15 +29,23 @@ export interface Probe {
 export const EXE = process.platform === "win32" ? "signal-headless.exe" : "signal-headless";
 
 // releaseAsset names the release tarball for this machine, or undefined if
-// no release exists for it.
+// signal-headless isn't built for it. An older release can lack a platform
+// added since; download then says so.
 export function releaseAsset(platform: string = process.platform, arch: string = process.arch): string | undefined {
-  const supported: Record<string, string> = { "linux-x64": "linux-x64" };
+  const supported: Record<string, string> = {
+    "linux-x64": "linux-x64",
+    "linux-arm64": "linux-arm64",
+    "darwin-x64": "darwin-x64",
+    "darwin-arm64": "darwin-arm64",
+    "win32-x64": "windows-x64",
+  };
   const key = supported[`${platform}-${arch}`];
   return key ? `signal-headless-${key}.tar.gz` : undefined;
 }
 
 // candidates lists existing binaries in order of preference: the setting,
-// an install on the host (PATH, ~/.local/bin, ~/go/bin), then our download.
+// an install on the host (PATH, ~/.local/bin, ~/go/bin, and on Windows
+// install.ps1's %LOCALAPPDATA%\Programs\signal-headless), then our download.
 export function candidates(setting: string, managedDir: string, env: NodeJS.ProcessEnv = process.env): Candidate[] {
   const out: Candidate[] = [];
   const add = (p: string, source: Source) => {
@@ -52,6 +60,10 @@ export function candidates(setting: string, managedDir: string, env: NodeJS.Proc
   const dirs = (env.PATH ?? "").split(path.delimiter).filter(Boolean);
   const home = env.HOME || os.homedir();
   dirs.push(path.join(home, ".local", "bin"), path.join(home, "go", "bin"));
+  if (env.LOCALAPPDATA) {
+    // Windows: where install.ps1 puts it (also on PATH, once VS Code restarts).
+    dirs.push(path.join(env.LOCALAPPDATA, "Programs", "signal-headless"));
+  }
   for (const d of dirs) {
     add(path.join(d, EXE), "path");
   }
@@ -116,7 +128,7 @@ export async function download(o: DownloadOptions): Promise<string> {
   const sums = (await get(`${base}/SHA256SUMS`)).toString("utf8");
   const want = sums.split("\n").map((l) => l.trim().split(/\s+/)).find((f) => f.length === 2 && f[1].replace(/^\*/, "") === asset)?.[0];
   if (!want) {
-    throw new Error(`${asset} is not listed in the release's SHA256SUMS`);
+    throw new Error(`signal-headless ${o.version} has no ${asset} (not in its SHA256SUMS)`);
   }
   const tgz = await get(`${base}/${asset}`, o.onProgress);
   const got = crypto.createHash("sha256").update(tgz).digest("hex");

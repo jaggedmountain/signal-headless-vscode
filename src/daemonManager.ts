@@ -9,7 +9,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { Candidate, Probe, candidates, choose, download, prune, releaseAsset } from "./daemonBinary";
 
-export const INSTALL_DOCS = "https://github.com/jaggedmountain/signal-headless#quick-start";
+export const INSTALL_DOCS = "https://github.com/jaggedmountain/signal-headless#install";
 
 export class Binaries {
   private cached?: Candidate & Probe;

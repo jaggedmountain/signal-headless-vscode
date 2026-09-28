@@ -36,6 +36,9 @@ test("candidates: setting only when set, else host install before our download",
   assert.deepEqual(list.slice(0, 1), [{ path: host, source: "path" }]);
   assert.deepEqual(list[list.length - 1], { path: managed, source: "managed" });
   assert.deepEqual(candidates(host, path.dirname(managed), {}), [{ path: host, source: "setting" }]);
+  // Windows: install.ps1's per-user directory.
+  const ps1 = fakeBinary(path.join(d, "LocalAppData", "Programs", "signal-headless"), "signal-headless v1");
+  assert.ok(candidates("", path.dirname(managed), { PATH: "", HOME: d, LOCALAPPDATA: path.join(d, "LocalAppData") }).some((c) => c.path === ps1 && c.source === "path"));
   // An old host install is skipped for the new-enough download...
   const { chosen, tooOld } = await choose(list, 1);
   assert.equal(chosen?.path, managed);
@@ -80,7 +83,7 @@ test("download verifies the checksum, follows redirects, installs the binary", a
   sums = `${"0".repeat(64)}  ${asset}\n`;
   await assert.rejects(download({ baseUrl, version: "v9.9.9", dir: path.join(d, "x"), asset }), /checksum mismatch/);
   assert.equal(fs.existsSync(path.join(d, "x")), false, "nothing installed on mismatch");
-  await assert.rejects(download({ baseUrl, version: "v9.9.9", dir: path.join(d, "y"), asset: "signal-headless-plan9-x64.tar.gz" }), /not listed/);
+  await assert.rejects(download({ baseUrl, version: "v9.9.9", dir: path.join(d, "y"), asset: "signal-headless-plan9-x64.tar.gz" }), /has no signal-headless-plan9-x64.tar.gz/);
   await assert.rejects(download({ baseUrl, version: "v0.0.0", dir: path.join(d, "z"), asset }), /HTTP 404/);
 
   fs.mkdirSync(path.join(d, "managed", "v0.0.1"));
@@ -103,6 +106,10 @@ test("untar handles long names and skips directories", () => {
 
 test("release assets exist only for built platforms", () => {
   assert.equal(releaseAsset("linux", "x64"), "signal-headless-linux-x64.tar.gz");
-  assert.equal(releaseAsset("darwin", "arm64"), undefined);
-  assert.equal(releaseAsset("win32", "x64"), undefined);
+  assert.equal(releaseAsset("linux", "arm64"), "signal-headless-linux-arm64.tar.gz");
+  assert.equal(releaseAsset("darwin", "arm64"), "signal-headless-darwin-arm64.tar.gz");
+  assert.equal(releaseAsset("darwin", "x64"), "signal-headless-darwin-x64.tar.gz");
+  assert.equal(releaseAsset("linux", "ia32"), undefined);
+  assert.equal(releaseAsset("win32", "x64"), "signal-headless-windows-x64.tar.gz");
+  assert.equal(releaseAsset("win32", "arm64"), undefined);
 });
