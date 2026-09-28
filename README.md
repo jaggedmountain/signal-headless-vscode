@@ -33,12 +33,14 @@ Conversations appear once the phone confirms.
 The extension runs [signal-headless](https://github.com/jaggedmountain/signal-headless),
 a small background service that holds the Signal connection and stores
 messages on this computer. If it isn't installed, the extension offers to
-download it (checksum-verified, from its GitHub releases).
+download it (checksum-verified, from its GitHub releases). Once it has, each
+extension update brings the matching signal-headless without asking again.
+An install from `install.sh`/`install.ps1` is used instead when it's new
+enough, and updates with `signal-headless --update`.
 
 **Requirements:** Linux (x86-64 or arm64), macOS (Apple Silicon or Intel) or
-Windows (x86-64). In Remote-SSH and container
-windows the extension runs on the local machine, so that is the one that
-needs to be supported (Remote-SSH is not tested yet).
+Windows (x86-64). In Remote-SSH and container windows the extension runs on
+the local machine, so that is the one that needs to be supported.
 
 ## Privacy
 
@@ -78,6 +80,20 @@ to typing.
 | `signalHeadless.executablePath` | | a specific `signal-headless` binary |
 | `signalHeadless.socketPath` | | a non-default service socket |
 | `signalHeadless.releasesUrl` | GitHub | a mirror to download signal-headless from |
+
+## Uninstalling
+
+Uninstalling the extension leaves signal-headless alone: this computer stays
+linked, and the message history and keys stay where they are. The only
+cleanup is the copy of signal-headless the extension downloaded, if it was
+using one: it is stopped and deleted.
+
+To remove everything, run **Signal: Remove signal-headless from This
+Computer…** first. After confirming with the account number, it unlinks this
+computer, deletes the message history and keys (stored unencrypted), and
+removes the program. It uses the installer's uninstaller when signal-headless
+came from `install.sh` or `install.ps1`. The phone and other linked devices
+keep their messages.
 
 ## Troubleshooting
 

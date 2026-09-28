@@ -114,11 +114,21 @@ export class Session extends EventEmitter<SessionEvents> {
   // reconnect drops the current connection and connects again now; an
   // explicit reconnect may auto-start the daemon again.
   reconnect(): void {
+    this.stopped = false;
     this.startAttempted = false;
     this.backoff = 1000;
     this.dropClient();
     clearTimeout(this.retryTimer);
     void this.connect();
+  }
+
+  // pause disconnects and stops reconnecting (and auto-starting) until
+  // reconnect(): while signal-headless is being removed.
+  pause(): void {
+    this.stopped = true;
+    clearTimeout(this.retryTimer);
+    this.dropClient();
+    this.setState("disconnected");
   }
 
   dispose(): void {

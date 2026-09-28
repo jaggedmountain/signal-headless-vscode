@@ -441,6 +441,66 @@ describe("signal-headless extension", () => {
     }
   });
 
+  it("updates an earlier download without asking, and keeps it if the update fails", async () => {
+    // Pretend the previous test's download is from an older extension.
+    const root = api.binaries.downloadRoot;
+    const version = api.binaries.pinned.version;
+    fs.renameSync(path.join(root, version), path.join(root, "v0.0.9"));
+    const dir = fs.mkdtempSync(path.join(process.env.SHV_TEST_DIR!, "up-"));
+    fs.mkdirSync(path.join(dir, "stage", "signal-headless"), { recursive: true });
+    fs.copyFileSync(linkWrapper(path.join(dir, "host")), path.join(dir, "stage", "signal-headless", "signal-headless"));
+    const asset = "signal-headless-linux-x64.tar.gz";
+    execFileSync("tar", ["-C", path.join(dir, "stage"), "-czf", path.join(dir, asset), "signal-headless"]);
+    const tgz = fs.readFileSync(path.join(dir, asset));
+    const sums = `${crypto.createHash("sha256").update(tgz).digest("hex")}  ${asset}\n`;
+    let serving = false; // first the release is missing: the update fails
+    const srv = http.createServer((req, res) => {
+      if (serving && req.url === `/download/${version}/${asset}`) {
+        res.end(tgz);
+      } else if (serving && req.url === `/download/${version}/SHA256SUMS`) {
+        res.end(sums);
+      } else {
+        res.writeHead(404);
+        res.end();
+      }
+    });
+    await new Promise<void>((r) => srv.listen(0, "127.0.0.1", r));
+    const socket = path.join(dir, "s.sock");
+    const cfg = () => vscode.workspace.getConfiguration("signalHeadless");
+    const G = vscode.ConfigurationTarget.Global;
+    const stopDaemons = () => {
+      for (const pid of pidsWithArg(socket)) {
+        process.kill(pid, "SIGTERM");
+      }
+    };
+    try {
+      await cfg().update("releasesUrl", `http://127.0.0.1:${(srv.address() as { port: number }).port}`, G);
+      // "ask": a first download would prompt (and this test would hang);
+      // an update of an earlier download must not.
+      await cfg().update("downloadDaemon", "ask", G);
+      await cfg().update("autoStartDaemon", true, G);
+      await cfg().update("executablePath", "", G);
+      await cfg().update("socketPath", socket, G);
+      await waitFor(() => api.session.state === "unlinked", 20_000, "old download in use after the failed update");
+      assert.match(api.binaries.describe(), /v0\.0\.9/);
+      assert.ok(fs.existsSync(path.join(root, "v0.0.9")), "old download kept");
+
+      serving = true;
+      stopDaemons();
+      api.binaries.reset();
+      api.session.reconnect();
+      await waitFor(() => new RegExp(version.replace(/\./g, "\\.")).test(api.binaries.describe()), 20_000, "updated without asking");
+      await waitFor(() => !fs.existsSync(path.join(root, "v0.0.9")), 5000, "old download removed");
+    } finally {
+      srv.close();
+      await cfg().update("executablePath", "/nonexistent", G);
+      await cfg().update("downloadDaemon", "never", G);
+      await cfg().update("releasesUrl", undefined, G);
+      await cfg().update("autoStartDaemon", false, G);
+      stopDaemons();
+    }
+  });
+
   // Last: it points the extension at a different (unlinked) host.
   it("links an unlinked host from the link panel and connects", async () => {
     const dir = fs.mkdtempSync(path.join(process.env.SHV_TEST_DIR!, "link-"));

@@ -234,6 +234,11 @@
         "title": "Retry Failed Downloads",
         "category": "Signal",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "signalHeadless.removeFromComputer",
+        "title": "Remove signal-headless from This Computer…",
+        "category": "Signal"
       }
     ],
     "menus": {
@@ -545,7 +550,8 @@
     "test:vscode": "node scripts/build.mjs --tests && xvfb-run -a -s \"-screen 0 1400x900x24\" node out/test/runVSCode.js",
     "test": "npm run typecheck && npm run test:unit && npm run test:vscode",
     "package": "npm run build -- --production && vsce package --no-dependencies -o signal-headless-vscode.vsix",
-    "fetch-daemon": "node scripts/build.mjs --tools && node out/fetch-daemon.js"
+    "fetch-daemon": "node scripts/build.mjs --tools && node out/fetch-daemon.js",
+    "vscode:uninstall": "node ./dist/uninstall.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

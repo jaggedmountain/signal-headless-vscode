@@ -5,6 +5,7 @@
 //
 // The extension runs on the UI side (extensionKind "ui"), so in Remote-SSH
 // windows it still talks to this machine's daemon.
+import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
@@ -15,6 +16,8 @@ import { Notifier, quickReply } from "./notifier";
 import { LinkPanel } from "./linkPanel";
 import { Binaries, INSTALL_DOCS } from "./daemonManager";
 import { socketPath } from "./paths";
+import { execute, plan } from "./removal";
+import { STATE_FILE, UninstallState } from "./uninstallHook";
 import { Session, SessionOptions, cleanEnv, errText } from "./session";
 import { StatusBar } from "./statusBar";
 import { DiagnosticsView, purgeCommand } from "./diagnosticsView";
@@ -52,6 +55,21 @@ export function activate(context: vscode.ExtensionContext): Api {
   };
   const opts = options();
   const session = new Session(opts);
+
+  // What the uninstall hook needs (it runs without VS Code's API); only for
+  // a real install, not a development checkout.
+  const writeUninstallState = () => {
+    if (context.extensionMode !== vscode.ExtensionMode.Production) {
+      return;
+    }
+    const state: UninstallState = { managedRoot: binaries.downloadRoot, socket: options().socket };
+    try {
+      fs.writeFileSync(path.join(context.extensionPath, STATE_FILE), JSON.stringify(state));
+    } catch (err) {
+      say(`uninstall state: ${errText(err)}`);
+    }
+  };
+  writeUninstallState();
   context.subscriptions.push({ dispose: () => session.dispose() });
 
   // Windows talking to the same daemon coordinate over a socket next to it.
@@ -178,6 +196,7 @@ export function activate(context: vscode.ExtensionContext): Api {
         binaries.reset();
         session.updateOptions(options());
         threadsView.refresh();
+        writeUninstallState();
       }
     }),
   );
@@ -232,6 +251,60 @@ export function activate(context: vscode.ExtensionContext): Api {
   });
   cmd("signalHeadless.clearSearch", () => searchView.clear());
   cmd("signalHeadless.refreshDiagnostics", () => diagnosticsView.refresh());
+  cmd("signalHeadless.removeFromComputer", async (opts?: { confirmed?: boolean; number?: string }) => {
+    const bin = await binaries.existing();
+    if (!bin) {
+      void vscode.window.showInformationMessage("Signal: signal-headless isn't installed on this computer.");
+      return "not installed";
+    }
+    const env = { SIGNAL_HEADLESS_SOCKET: options().socket };
+    const p = await plan(bin, binaries.downloadRoot, env);
+    let number = opts?.number ?? p.number ?? "";
+    if (!opts?.confirmed) {
+      const parts = [
+        p.linked ? `It unlinks this computer from the Signal account ${p.number}` : "",
+        `deletes its message history and keys (${p.dataDir}), which are stored unencrypted`,
+        `and removes the signal-headless program${p.uninstaller ? " with its uninstaller" : p.managed ? " this extension downloaded" : ""}.`,
+      ].filter(Boolean);
+      const pick = await vscode.window.showWarningMessage("Remove signal-headless from this computer?", {
+        modal: true,
+        detail: parts.join(", ") + " The phone and other linked devices keep their messages.",
+      }, "Remove…");
+      if (pick !== "Remove…") {
+        return "cancelled";
+      }
+      if (p.linked) {
+        const typed = await vscode.window.showInputBox({
+          title: "Remove signal-headless",
+          prompt: `Type the account number (${p.number}) to confirm`,
+          validateInput: (v) => (v.trim() === p.number ? undefined : "Doesn't match the account number"),
+          ignoreFocusOut: true,
+        });
+        if (!typed || typed.trim() !== p.number) {
+          return "cancelled";
+        }
+        number = typed.trim();
+      }
+    }
+    session.pause(); // no reconnecting or auto-starting while it goes
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Signal: removing signal-headless…" }, () =>
+      execute(p, number, binaries.downloadRoot, env, say, async (why) => {
+        if (opts?.confirmed) {
+          return true;
+        }
+        const pick = await vscode.window.showWarningMessage("Unlinking failed. Delete the data anyway?", {
+          modal: true,
+          detail: `${why}\n\nDeleting it anyway leaves this computer listed on the phone (remove it there: Settings → Linked devices).`,
+        }, "Delete Anyway");
+        return pick === "Delete Anyway";
+      }));
+    binaries.reset();
+    if (!opts?.confirmed) {
+      void vscode.window.showInformationMessage("Signal: signal-headless was removed from this computer.", "Uninstall Extension").then((c) =>
+        c && void vscode.commands.executeCommand("workbench.extensions.uninstallExtension", context.extension.id));
+    }
+    return "removed";
+  });
   cmd("signalHeadless.purge", async (a?: unknown, opts?: { before?: number; confirmed?: boolean; allDevices?: boolean }) => {
     const res = await purgeCommand(session, threadArg(a), opts);
     void diagnosticsView.refresh();

@@ -5,9 +5,10 @@
 // configured one, else an install on the host that is new enough, else the
 // release this extension was built for, downloaded (with consent) from
 // GitHub into the extension's storage.
+import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { Candidate, Probe, candidates, choose, download, prune, releaseAsset } from "./daemonBinary";
+import { Candidate, EXE, Probe, candidates, choose, download, prune, releaseAsset } from "./daemonBinary";
 
 export const INSTALL_DOCS = "https://github.com/jaggedmountain/signal-headless#install";
 
@@ -28,6 +29,22 @@ export class Binaries {
 
   private get managedRoot(): string {
     return path.join(this.context.globalStorageUri.fsPath, "daemon");
+  }
+
+  // existing returns the binary in use, or any installed one (even too old),
+  // without offering a download: for removal.
+  async existing(): Promise<string | undefined> {
+    if (this.cached) {
+      return this.cached.path;
+    }
+    const cfg = vscode.workspace.getConfiguration("signalHeadless");
+    const { chosen } = await choose(candidates(cfg.get("executablePath", ""), this.managedDir), 0);
+    return chosen?.path;
+  }
+
+  // downloadRoot holds every daemon release this extension downloaded.
+  get downloadRoot(): string {
+    return this.managedRoot;
   }
 
   private get managedDir(): string {
@@ -83,6 +100,12 @@ export class Binaries {
     if (mode === "never" || (this.declined && !interactive)) {
       return undefined;
     }
+    // An earlier download means the user already agreed: a newer extension
+    // pinned to a newer daemon updates it without asking again.
+    const previous = this.previousDownloads();
+    if (previous.length > 0) {
+      return this.fetch(previous);
+    }
     if (mode === "ask") {
       const choice = await vscode.window.showInformationMessage(
         `Signal: ${why} Download signal-headless ${version} (about 20 MB) from its GitHub releases?`,
@@ -108,12 +131,28 @@ export class Binaries {
     return this.fetch();
   }
 
-  private async fetch(): Promise<string | undefined> {
+  // previousDownloads lists this extension's downloads of other daemon
+  // versions (from before an extension update).
+  private previousDownloads(): Candidate[] {
+    const { version } = this.pinned;
+    try {
+      return fs.readdirSync(this.managedRoot, { withFileTypes: true })
+        .filter((e) => e.isDirectory() && e.name !== version && fs.existsSync(path.join(this.managedRoot, e.name, EXE)))
+        .map((e) => ({ path: path.join(this.managedRoot, e.name, EXE), source: "managed" as const }));
+    } catch {
+      return [];
+    }
+  }
+
+  // fetch downloads the pinned release. previous: older downloads to update
+  // from (no question asked), and to fall back on if the update fails.
+  private async fetch(previous: Candidate[] = []): Promise<string | undefined> {
     const { version, minProtocol } = this.pinned;
+    const updating = previous.length > 0;
     const baseUrl = vscode.workspace.getConfiguration("signalHeadless").get("releasesUrl", "https://github.com/jaggedmountain/signal-headless/releases");
     try {
       const exe = await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: `Signal: downloading signal-headless ${version}`, cancellable: false },
+        { location: vscode.ProgressLocation.Notification, title: `Signal: ${updating ? "updating signal-headless to" : "downloading signal-headless"} ${version}`, cancellable: false },
         (progress) => {
           let last = 0;
           return download({
@@ -129,11 +168,11 @@ export class Binaries {
             },
           });
         });
-      prune(this.managedRoot, version);
       const { chosen } = await choose([{ path: exe, source: "managed" }], minProtocol);
       if (!chosen) {
         throw new Error(`the downloaded binary doesn't run here, or is older than protocol ${minProtocol}`);
       }
+      prune(this.managedRoot, version); // only once the new one is known to work
       this.cached = chosen;
       this.log(`downloaded ${this.describe()}`);
       return exe;
@@ -141,6 +180,15 @@ export class Binaries {
       const msg = err instanceof Error ? err.message : String(err);
       this.note = `download failed: ${msg}`;
       this.log(`daemon download: ${msg}`);
+      if (updating) {
+        const { chosen } = await choose(previous, minProtocol);
+        if (chosen) {
+          this.cached = chosen;
+          this.log(`update to ${version} failed; keeping ${this.describe()}`);
+          void vscode.window.showWarningMessage(`Signal: couldn't update signal-headless to ${version} (${msg}); still using ${chosen.version}.`);
+          return chosen.path;
+        }
+      }
       this.declined = true;
       void vscode.window.showErrorMessage(`Signal: couldn't download signal-headless ${version}: ${msg}`, "How to Install")
         .then((c) => c && void vscode.env.openExternal(vscode.Uri.parse(INSTALL_DOCS)));

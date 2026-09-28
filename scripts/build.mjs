@@ -21,6 +21,8 @@ const common = {
 const builds = [
   { ...common, entryPoints: ["src/extension.ts"], outfile: "dist/extension.js", platform: "node", format: "cjs", target: "node20", external: ["vscode"] },
   { ...common, entryPoints: ["webview/chat.ts"], outfile: "dist/chat.js", platform: "browser", format: "iife", target: "es2022" },
+  // The vscode:uninstall hook: plain Node, run after the extension is gone.
+  { ...common, entryPoints: ["src/uninstallHook.ts"], outfile: "dist/uninstall.js", platform: "node", format: "cjs", target: "node20" },
 ];
 
 if (tests) {

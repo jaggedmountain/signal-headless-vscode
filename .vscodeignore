@@ -1,6 +1,7 @@
 **
 !dist/extension.js
 !dist/chat.js
+!dist/uninstall.js
 !media/**
 !package.json
 !README.md
