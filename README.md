@@ -103,7 +103,7 @@ keep their messages.
 - **Something else**: the **Diagnostics** section of the Signal view shows
   the account, connection and storage; **Signal: Show Log** has details.
 
-## Donate
+## Volunteer Funding
 
 signal-headless and this extension are free and made in spare time. If
 they're useful, support helps keep them maintained:
@@ -111,7 +111,7 @@ they're useful, support helps keep them maintained:
 - [GitHub Sponsors](https://github.com/sponsors/jam-on): monthly or one-time
 - [Ko-fi](https://ko-fi.com/jaggedmountain): a one-off tip, no account needed
 
-Signal itself runs on donations too:
+Signal itself runs on volunteer funding too:
 [signal.org/donate](https://signal.org/donate/).
 
 ## License
